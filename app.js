@@ -397,11 +397,10 @@ function renderWorkLogs() {
         <header>
           <div>
             <div class="meta"><span>${escapeHtml(item.date)}</span>${authorPill(item.author)}<span class="pill">学习日志</span></div>
-            <h3>学习关键点</h3>
+            <h3>${escapeHtml(firstLine(item.keyPoints))}</h3>
           </div>
           ${deleteButton("workLogs", item.id)}
         </header>
-        <p>${escapeHtml(item.keyPoints)}</p>
       </article>
     `)
     .join("");
@@ -434,7 +433,6 @@ function renderLeetcode() {
             ${deleteButton("leetcode", item.id)}
           </header>
           <p>${escapeHtml(item.tags || "未填写标签")}</p>
-          ${fieldBlock("题解与思路", item.solution)}
         </article>
       `;
     })
@@ -465,8 +463,6 @@ function renderProjects() {
           <div class="progress-bar" style="width: ${Number(item.progress) || 0}%"></div>
         </div>
         <p>进度：${escapeHtml(item.progress)}%</p>
-        ${fieldBlock("今日进展", item.progressNote)}
-        ${fieldBlock("归纳总结", item.summary)}
       </article>
     `)
     .join("");
@@ -516,11 +512,6 @@ function authorPill(id) {
 
 function firstLine(value = "") {
   return String(value).split(/\r?\n/).find(Boolean) || "学习日志";
-}
-
-function fieldBlock(label, value) {
-  if (!value) return "";
-  return `<section><div class="meta"><strong>${label}</strong></div><p>${escapeHtml(value)}</p></section>`;
 }
 
 function deleteButton(collection, id) {
