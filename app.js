@@ -303,6 +303,7 @@ function renderAuthState() {
   const locked = cloudEnabled && !hasValidSession();
   document.body.classList.toggle("auth-locked", locked);
   document.querySelector("#authPanel").hidden = !locked;
+  document.querySelector("#mainNav").hidden = locked;
   document.querySelector("#logoutButton").hidden = !cloudEnabled || locked;
 }
 
