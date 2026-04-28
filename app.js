@@ -393,15 +393,18 @@ function renderWorkLogs() {
 
   target.innerHTML = list
     .map((item) => `
-      <article class="record-card" style="--author-color:${escapeAttribute(authorFor(item.author).color)}">
-        <header>
-          <div>
-            <div class="meta"><span>${escapeHtml(item.date)}</span>${authorPill(item.author)}<span class="pill">学习日志</span></div>
-            <h3>${escapeHtml(firstLine(item.keyPoints))}</h3>
-          </div>
+      <details class="record-card" style="--author-color:${escapeAttribute(authorFor(item.author).color)}">
+        <summary>
+          <span>
+            <span class="meta"><span>${escapeHtml(item.date)}</span>${authorPill(item.author)}<span class="pill">学习日志</span></span>
+            <strong>${escapeHtml(firstLine(item.keyPoints))}</strong>
+          </span>
           ${deleteButton("workLogs", item.id)}
-        </header>
-      </article>
+        </summary>
+        <div class="record-detail">
+          ${detailBlock("完整关键点", item.keyPoints)}
+        </div>
+      </details>
     `)
     .join("");
   bindDeleteButtons(target);
@@ -420,20 +423,24 @@ function renderLeetcode() {
     .map((item) => {
       const title = `#${escapeHtml(item.number)} ${escapeHtml(item.title)}`;
       return `
-        <article class="record-card" style="--author-color:${escapeAttribute(authorFor(item.author).color)}">
-          <header>
-            <div>
-              <div class="meta">
+        <details class="record-card" style="--author-color:${escapeAttribute(authorFor(item.author).color)}">
+          <summary>
+            <span>
+              <span class="meta">
                 <span>${escapeHtml(item.date)}</span>
                 ${authorPill(item.author)}
                 <span class="pill ${item.difficulty.toLowerCase()}">${escapeHtml(item.difficulty)}</span>
-              </div>
-              <h3>${safeUrl(item.url) ? `<a href="${escapeAttribute(safeUrl(item.url))}" target="_blank" rel="noreferrer">${title}</a>` : title}</h3>
-            </div>
+              </span>
+              <strong>${safeUrl(item.url) ? `<a href="${escapeAttribute(safeUrl(item.url))}" target="_blank" rel="noreferrer">${title}</a>` : title}</strong>
+              <span class="summary-line">${escapeHtml(item.tags || "未填写标签")}</span>
+            </span>
             ${deleteButton("leetcode", item.id)}
-          </header>
-          <p>${escapeHtml(item.tags || "未填写标签")}</p>
-        </article>
+          </summary>
+          <div class="record-detail">
+            ${detailBlock("标签", item.tags || "未填写标签")}
+            ${detailBlock("题解与思路", item.solution)}
+          </div>
+        </details>
       `;
     })
     .join("");
@@ -447,23 +454,27 @@ function renderProjects() {
 
   target.innerHTML = list
     .map((item) => `
-      <article class="record-card" style="--author-color:${escapeAttribute(authorFor(item.author).color)}">
-        <header>
-          <div>
-            <div class="meta">
+      <details class="record-card" style="--author-color:${escapeAttribute(authorFor(item.author).color)}">
+        <summary>
+          <span>
+            <span class="meta">
               <span>${escapeHtml(item.date)}</span>
               ${authorPill(item.author)}
               <span class="pill">${escapeHtml(item.stage)}</span>
-            </div>
-            <h3>${escapeHtml(item.name)}</h3>
-          </div>
+            </span>
+            <strong>${escapeHtml(item.name)}</strong>
+            <span class="summary-line">进度：${escapeHtml(item.progress)}%</span>
+          </span>
           ${deleteButton("projects", item.id)}
-        </header>
+        </summary>
         <div class="progress-track" aria-label="项目进度 ${escapeAttribute(item.progress)}%">
           <div class="progress-bar" style="width: ${Number(item.progress) || 0}%"></div>
         </div>
-        <p>进度：${escapeHtml(item.progress)}%</p>
-      </article>
+        <div class="record-detail">
+          ${detailBlock("今日进展", item.progressNote)}
+          ${detailBlock("归纳总结", item.summary)}
+        </div>
+      </details>
     `)
     .join("");
   bindDeleteButtons(target);
@@ -514,6 +525,11 @@ function firstLine(value = "") {
   return String(value).split(/\r?\n/).find(Boolean) || "学习日志";
 }
 
+function detailBlock(label, value) {
+  if (!value) return "";
+  return `<section><div class="meta"><strong>${escapeHtml(label)}</strong></div><p>${escapeHtml(value)}</p></section>`;
+}
+
 function deleteButton(collection, id) {
   return `
     <div class="record-actions">
@@ -524,7 +540,9 @@ function deleteButton(collection, id) {
 
 function bindDeleteButtons(scope) {
   scope.querySelectorAll("[data-collection][data-id]").forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       const { collection, id } = button.dataset;
       deleteRecord(collection, id);
     });
