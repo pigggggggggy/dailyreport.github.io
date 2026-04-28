@@ -48,8 +48,8 @@ window.APP_CONFIG = {
 
 ```js
 authors: [
-  { id: "me", name: "你的名字", color: "#246b55" },
-  { id: "friend", name: "朋友的名字", color: "#2d5f91" }
+  { id: "zjw", name: "zjw", color: "#246b55" },
+  { id: "sxk", name: "sxk", color: "#2d5f91" }
 ]
 ```
 

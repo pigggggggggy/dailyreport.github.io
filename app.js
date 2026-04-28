@@ -123,8 +123,8 @@ function initAuthorControls() {
 
 function normalizeAuthors(value) {
   const fallback = [
-    { id: "me", name: "我", color: "#246b55" },
-    { id: "friend", name: "朋友", color: "#2d5f91" }
+    { id: "zjw", name: "zjw", color: "#246b55" },
+    { id: "sxk", name: "sxk", color: "#2d5f91" }
   ];
   const source = Array.isArray(value) && value.length ? value : fallback;
 
@@ -351,7 +351,7 @@ function withId(item) {
 }
 
 function defaultAuthorId() {
-  return authors[0]?.id || "me";
+  return authors[0]?.id || "zjw";
 }
 
 function formToObject(form) {
