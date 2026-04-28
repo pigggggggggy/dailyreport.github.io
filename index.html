@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>我的工作主页</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">GitHub Pages 工作主页</p>
+        <h1>我的工作记录台</h1>
+      </div>
+      <nav class="nav" aria-label="页面导航">
+        <a href="#today">今日</a>
+        <a href="#leetcode">LeetCode</a>
+        <a href="#projects">项目</a>
+        <a href="#archive">归档</a>
+      </nav>
+      <span id="cloudStatus" class="sync-status">本地模式</span>
+    </header>
+
+    <main>
+      <section class="metrics" aria-label="记录概览">
+        <article>
+          <span id="workCount">0</span>
+          <p>学习日志</p>
+        </article>
+        <article>
+          <span id="leetcodeCount">0</span>
+          <p>LeetCode 打卡</p>
+        </article>
+        <article>
+          <span id="projectCount">0</span>
+          <p>项目记录</p>
+        </article>
+        <article>
+          <span id="streakCount">0</span>
+          <p>连续刷题天数</p>
+        </article>
+      </section>
+
+      <section id="today" class="workspace">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Study Log</p>
+            <h2>每日学习日志</h2>
+          </div>
+          <button class="icon-button" id="exportData" title="导出 JSON" aria-label="导出 JSON">
+            <span aria-hidden="true">↓</span>
+          </button>
+        </div>
+
+        <form id="workForm" class="record-form">
+          <label>
+            日期
+            <input type="date" name="date" required>
+          </label>
+          <label>
+            学习关键点
+            <textarea name="keyPoints" rows="5" required></textarea>
+          </label>
+          <button type="submit">保存学习日志</button>
+        </form>
+
+        <div id="workList" class="timeline" aria-live="polite"></div>
+      </section>
+
+      <section id="leetcode" class="workspace accent">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">LeetCode Check-in</p>
+            <h2>刷题打卡与题解</h2>
+          </div>
+          <div class="filters" role="group" aria-label="LeetCode 难度筛选">
+            <button type="button" class="filter active" data-difficulty="全部">全部</button>
+            <button type="button" class="filter" data-difficulty="Easy">Easy</button>
+            <button type="button" class="filter" data-difficulty="Medium">Medium</button>
+            <button type="button" class="filter" data-difficulty="Hard">Hard</button>
+          </div>
+        </div>
+
+        <form id="leetcodeForm" class="record-form split">
+          <label>
+            日期
+            <input type="date" name="date" required>
+          </label>
+          <label>
+            题号
+            <input type="number" name="number" min="1" required>
+          </label>
+          <label>
+            题目名称
+            <input type="text" name="title" required>
+          </label>
+          <label>
+            难度
+            <select name="difficulty">
+              <option>Easy</option>
+              <option selected>Medium</option>
+              <option>Hard</option>
+            </select>
+          </label>
+          <label>
+            标签
+            <input type="text" name="tags">
+          </label>
+          <label>
+            题目链接
+            <input type="url" name="url">
+          </label>
+          <label class="wide">
+            题解与思路
+            <textarea name="solution" rows="5"></textarea>
+          </label>
+          <button type="submit">保存刷题记录</button>
+        </form>
+
+        <div id="leetcodeList" class="card-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="projects" class="workspace">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Project Journal</p>
+            <h2>项目记录区</h2>
+          </div>
+          <label class="import-button">
+            导入 JSON
+            <input id="importData" type="file" accept="application/json">
+          </label>
+        </div>
+
+        <form id="projectForm" class="record-form split">
+          <label>
+            日期
+            <input type="date" name="date" required>
+          </label>
+          <label>
+            项目名称
+            <input type="text" name="name" required>
+          </label>
+          <label>
+            阶段
+            <select name="stage">
+              <option>规划</option>
+              <option selected>开发</option>
+              <option>测试</option>
+              <option>上线</option>
+              <option>维护</option>
+            </select>
+          </label>
+          <label>
+            进度
+            <input type="range" name="progress" min="0" max="100" value="30">
+          </label>
+          <label class="wide">
+            今日进展
+            <textarea name="progressNote" rows="4"></textarea>
+          </label>
+          <label class="wide">
+            归纳总结
+            <textarea name="summary" rows="4"></textarea>
+          </label>
+          <button type="submit">保存项目记录</button>
+        </form>
+
+        <div id="projectList" class="project-list" aria-live="polite"></div>
+      </section>
+
+      <section id="archive" class="workspace archive">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Archive</p>
+            <h2>最近记录归档</h2>
+          </div>
+          <button id="clearData" type="button" class="danger-button">清空本地数据</button>
+        </div>
+        <div id="archiveList" class="archive-list"></div>
+      </section>
+    </main>
+
+    <template id="emptyState">
+      <div class="empty">
+        <strong>还没有记录</strong>
+        <p>从上面的表单开始写第一条，主页会自动保存到本地。</p>
+      </div>
+    </template>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
