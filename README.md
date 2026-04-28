@@ -44,6 +44,15 @@ window.APP_CONFIG = {
 
 配置完成后，页面右上角会显示“云同步模式”。协作者打开同一个网址后，可以添加学习日志、LeetCode 记录和项目进展。
 
+如果需要区分两位记录人，可以在 `config.js` 里修改 `authors`：
+
+```js
+authors: [
+  { id: "me", name: "你的名字", color: "#246b55" },
+  { id: "friend", name: "朋友的名字", color: "#2d5f91" }
+]
+```
+
 当前 SQL 允许公开读取、添加和删除记录，适合小范围协作。如果页面会公开传播，建议后续接 Supabase Auth 或收紧 RLS 权限。
 
 ## 数据建议

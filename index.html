@@ -41,6 +41,14 @@
         </article>
       </section>
 
+      <section class="people-bar" aria-label="记录人筛选">
+        <div>
+          <p class="eyebrow">People</p>
+          <h2>协作记录</h2>
+        </div>
+        <div id="authorFilters" class="author-filters" role="group" aria-label="记录人筛选"></div>
+      </section>
+
       <section id="today" class="workspace">
         <div class="section-head">
           <div>
@@ -56,6 +64,10 @@
           <label>
             日期
             <input type="date" name="date" required>
+          </label>
+          <label>
+            记录人
+            <select name="author" data-author-select required></select>
           </label>
           <label>
             学习关键点
@@ -85,6 +97,10 @@
           <label>
             日期
             <input type="date" name="date" required>
+          </label>
+          <label>
+            记录人
+            <select name="author" data-author-select required></select>
           </label>
           <label>
             题号
@@ -136,6 +152,10 @@
           <label>
             日期
             <input type="date" name="date" required>
+          </label>
+          <label>
+            记录人
+            <select name="author" data-author-select required></select>
           </label>
           <label>
             项目名称

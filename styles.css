@@ -155,6 +155,50 @@ main {
   margin: 4px 0 0;
 }
 
+.people-bar {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 16px 18px;
+}
+
+.people-bar h2,
+.people-bar p {
+  margin: 0;
+}
+
+.people-bar h2 {
+  font-size: 1.08rem;
+}
+
+.author-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.author-filter {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  display: inline-flex;
+  font-weight: 800;
+  gap: 7px;
+  padding: 8px 12px;
+}
+
+.author-filter.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
 .workspace {
   padding: clamp(18px, 4vw, 32px);
 }
@@ -282,8 +326,10 @@ textarea {
 }
 
 .record-card {
+  --author-color: var(--green);
   background: #fff;
   border: 1px solid var(--line);
+  border-left: 5px solid var(--author-color);
   border-radius: 8px;
   display: grid;
   gap: 12px;
@@ -342,6 +388,21 @@ textarea {
   color: #a23333;
 }
 
+.author-pill {
+  align-items: center;
+  background: color-mix(in srgb, var(--author-color), #fff 86%);
+  color: var(--author-color);
+  gap: 6px;
+}
+
+.author-dot {
+  background: var(--author-color);
+  border-radius: 999px;
+  display: inline-block;
+  height: 8px;
+  width: 8px;
+}
+
 .record-actions {
   display: flex;
   gap: 8px;
@@ -390,7 +451,8 @@ textarea {
 
 @media (max-width: 860px) {
   .topbar,
-  .section-head {
+  .section-head,
+  .people-bar {
     align-items: stretch;
     flex-direction: column;
   }

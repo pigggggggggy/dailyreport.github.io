@@ -38,9 +38,11 @@ const config = window.APP_CONFIG || {};
 const supabaseKey = config.supabasePublicKey || config.supabaseAnonKey || "";
 const cloudEnabled = Boolean(config.supabaseUrl && supabaseKey);
 const tableName = config.tableName || "work_records";
+const authors = normalizeAuthors(config.authors);
 
 let state = { workLogs: [], leetcode: [], projects: [] };
 let activeDifficulty = "全部";
+let activeAuthor = "全部";
 
 const forms = {
   work: document.querySelector("#workForm"),
@@ -51,6 +53,8 @@ const forms = {
 document.querySelectorAll('input[type="date"]').forEach((input) => {
   input.value = today();
 });
+
+initAuthorControls();
 
 forms.work.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -87,6 +91,49 @@ document.querySelectorAll(".filter").forEach((button) => {
     renderLeetcode();
   });
 });
+
+function initAuthorControls() {
+  const options = authors.map((author) => `<option value="${escapeAttribute(author.id)}">${escapeHtml(author.name)}</option>`).join("");
+  document.querySelectorAll("[data-author-select]").forEach((select) => {
+    select.innerHTML = options;
+  });
+
+  const target = document.querySelector("#authorFilters");
+  if (!target) return;
+
+  target.innerHTML = [
+    `<button type="button" class="author-filter active" data-author="全部">全部</button>`,
+    ...authors.map((author) => `
+      <button type="button" class="author-filter" data-author="${escapeAttribute(author.id)}">
+        <span class="author-dot" style="background:${escapeAttribute(author.color)}"></span>
+        ${escapeHtml(author.name)}
+      </button>
+    `)
+  ].join("");
+
+  target.querySelectorAll(".author-filter").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeAuthor = button.dataset.author;
+      target.querySelectorAll(".author-filter").forEach((item) => item.classList.remove("active"));
+      button.classList.add("active");
+      render();
+    });
+  });
+}
+
+function normalizeAuthors(value) {
+  const fallback = [
+    { id: "me", name: "我", color: "#246b55" },
+    { id: "friend", name: "朋友", color: "#2d5f91" }
+  ];
+  const source = Array.isArray(value) && value.length ? value : fallback;
+
+  return source.map((author, index) => ({
+    id: author.id || `person-${index + 1}`,
+    name: author.name || `成员 ${index + 1}`,
+    color: author.color || fallback[index % fallback.length].color
+  }));
+}
 
 document.querySelector("#exportData").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
@@ -265,12 +312,14 @@ function normalizeState(value) {
   return {
     workLogs: Array.isArray(value.workLogs) ? value.workLogs.map(normalizeStudyLog) : [],
     leetcode: Array.isArray(value.leetcode) ? value.leetcode.map((item) => ({
+      author: defaultAuthorId(),
       difficulty: "Medium",
       tags: "",
       solution: "",
       ...withId(item)
     })) : [],
     projects: Array.isArray(value.projects) ? value.projects.map((item) => ({
+      author: defaultAuthorId(),
       stage: "开发",
       progress: "0",
       progressNote: "",
@@ -282,12 +331,14 @@ function normalizeState(value) {
 
 function normalizeStudyLog(item) {
   const normalized = withId(item);
+  normalized.author = normalized.author || defaultAuthorId();
   if (normalized.keyPoints) return normalized;
 
   const legacyParts = [normalized.title, normalized.done, normalized.blockers, normalized.next].filter(Boolean);
   return {
     id: normalized.id,
     date: normalized.date,
+    author: normalized.author,
     keyPoints: legacyParts.join("\n")
   };
 }
@@ -297,6 +348,10 @@ function withId(item) {
     ...item,
     id: item.id || crypto.randomUUID()
   };
+}
+
+function defaultAuthorId() {
+  return authors[0]?.id || "me";
 }
 
 function formToObject(form) {
@@ -333,14 +388,15 @@ function renderMetrics() {
 
 function renderWorkLogs() {
   const target = document.querySelector("#workList");
-  if (!state.workLogs.length) return renderEmpty(target);
+  const list = filterByAuthor(state.workLogs);
+  if (!list.length) return renderEmpty(target);
 
-  target.innerHTML = state.workLogs
+  target.innerHTML = list
     .map((item) => `
-      <article class="record-card">
+      <article class="record-card" style="--author-color:${escapeAttribute(authorFor(item.author).color)}">
         <header>
           <div>
-            <div class="meta"><span>${escapeHtml(item.date)}</span><span class="pill">学习日志</span></div>
+            <div class="meta"><span>${escapeHtml(item.date)}</span>${authorPill(item.author)}<span class="pill">学习日志</span></div>
             <h3>学习关键点</h3>
           </div>
           ${deleteButton("workLogs", item.id)}
@@ -354,9 +410,10 @@ function renderWorkLogs() {
 
 function renderLeetcode() {
   const target = document.querySelector("#leetcodeList");
-  const list = activeDifficulty === "全部"
+  const difficultyList = activeDifficulty === "全部"
     ? state.leetcode
     : state.leetcode.filter((item) => item.difficulty === activeDifficulty);
+  const list = filterByAuthor(difficultyList);
 
   if (!list.length) return renderEmpty(target);
 
@@ -364,11 +421,12 @@ function renderLeetcode() {
     .map((item) => {
       const title = `#${escapeHtml(item.number)} ${escapeHtml(item.title)}`;
       return `
-        <article class="record-card">
+        <article class="record-card" style="--author-color:${escapeAttribute(authorFor(item.author).color)}">
           <header>
             <div>
               <div class="meta">
                 <span>${escapeHtml(item.date)}</span>
+                ${authorPill(item.author)}
                 <span class="pill ${item.difficulty.toLowerCase()}">${escapeHtml(item.difficulty)}</span>
               </div>
               <h3>${safeUrl(item.url) ? `<a href="${escapeAttribute(safeUrl(item.url))}" target="_blank" rel="noreferrer">${title}</a>` : title}</h3>
@@ -386,15 +444,17 @@ function renderLeetcode() {
 
 function renderProjects() {
   const target = document.querySelector("#projectList");
-  if (!state.projects.length) return renderEmpty(target);
+  const list = filterByAuthor(state.projects);
+  if (!list.length) return renderEmpty(target);
 
-  target.innerHTML = state.projects
+  target.innerHTML = list
     .map((item) => `
-      <article class="record-card">
+      <article class="record-card" style="--author-color:${escapeAttribute(authorFor(item.author).color)}">
         <header>
           <div>
             <div class="meta">
               <span>${escapeHtml(item.date)}</span>
+              ${authorPill(item.author)}
               <span class="pill">${escapeHtml(item.stage)}</span>
             </div>
             <h3>${escapeHtml(item.name)}</h3>
@@ -416,9 +476,9 @@ function renderProjects() {
 function renderArchive() {
   const target = document.querySelector("#archiveList");
   const combined = [
-    ...state.workLogs.map((item) => ({ type: "学习", title: firstLine(item.keyPoints), date: item.date })),
-    ...state.leetcode.map((item) => ({ type: "刷题", title: `#${item.number} ${item.title}`, date: item.date })),
-    ...state.projects.map((item) => ({ type: "项目", title: item.name, date: item.date }))
+    ...filterByAuthor(state.workLogs).map((item) => ({ type: "学习", title: firstLine(item.keyPoints), date: item.date, author: item.author })),
+    ...filterByAuthor(state.leetcode).map((item) => ({ type: "刷题", title: `#${item.number} ${item.title}`, date: item.date, author: item.author })),
+    ...filterByAuthor(state.projects).map((item) => ({ type: "项目", title: item.name, date: item.date, author: item.author }))
   ]
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 9);
@@ -427,12 +487,31 @@ function renderArchive() {
 
   target.innerHTML = combined
     .map((item) => `
-      <article class="record-card">
-        <div class="meta"><span>${escapeHtml(item.date)}</span><span class="pill">${escapeHtml(item.type)}</span></div>
+      <article class="record-card" style="--author-color:${escapeAttribute(authorFor(item.author).color)}">
+        <div class="meta"><span>${escapeHtml(item.date)}</span>${authorPill(item.author)}<span class="pill">${escapeHtml(item.type)}</span></div>
         <h3>${escapeHtml(item.title)}</h3>
       </article>
     `)
     .join("");
+}
+
+function filterByAuthor(items) {
+  if (activeAuthor === "全部") return items;
+  return items.filter((item) => (item.author || defaultAuthorId()) === activeAuthor);
+}
+
+function authorFor(id) {
+  return authors.find((author) => author.id === id) || authors[0];
+}
+
+function authorPill(id) {
+  const author = authorFor(id);
+  return `
+    <span class="pill author-pill" style="--author-color:${escapeAttribute(author.color)}">
+      <span class="author-dot" aria-hidden="true"></span>
+      ${escapeHtml(author.name)}
+    </span>
+  `;
 }
 
 function firstLine(value = "") {
