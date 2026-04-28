@@ -18,8 +18,30 @@
         <a href="#projects">项目</a>
         <a href="#archive">归档</a>
       </nav>
-      <span id="cloudStatus" class="sync-status">本地模式</span>
+      <div class="session-tools">
+        <span id="cloudStatus" class="sync-status">本地模式</span>
+        <button id="logoutButton" type="button" class="ghost-button" hidden>退出</button>
+      </div>
     </header>
+
+    <section id="authPanel" class="auth-panel" hidden>
+      <form id="loginForm" class="login-form">
+        <div>
+          <p class="eyebrow">Private Access</p>
+          <h2>登录后记录</h2>
+        </div>
+        <label>
+          账号
+          <select name="username" required></select>
+        </label>
+        <label>
+          密码
+          <input type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit">登录</button>
+        <p id="authMessage" class="auth-message"></p>
+      </form>
+    </section>
 
     <main>
       <section class="metrics" aria-label="记录概览">

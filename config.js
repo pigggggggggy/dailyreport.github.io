@@ -5,5 +5,9 @@ window.APP_CONFIG = {
   authors: [
     { id: "zjw", name: "zjw", color: "#246b55" },
     { id: "sxk", name: "sxk", color: "#2d5f91" }
-  ]
+  ],
+  authUsers: {
+    zjw: "zjw@dailyreport.local",
+    sxk: "sxk@dailyreport.local"
+  }
 };

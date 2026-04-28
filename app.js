@@ -1,4 +1,5 @@
 const STORAGE_KEY = "my-github-work-homepage";
+const AUTH_STORAGE_KEY = `${STORAGE_KEY}:supabase-session`;
 const COLLECTIONS = ["workLogs", "leetcode", "projects"];
 
 const seedData = {
@@ -39,15 +40,18 @@ const supabaseKey = config.supabasePublicKey || config.supabaseAnonKey || "";
 const cloudEnabled = Boolean(config.supabaseUrl && supabaseKey);
 const tableName = config.tableName || "work_records";
 const authors = normalizeAuthors(config.authors);
+const authUsers = normalizeAuthUsers(config.authUsers, authors);
 
 let state = { workLogs: [], leetcode: [], projects: [] };
 let activeDifficulty = "全部";
 let activeAuthor = "全部";
+let authSession = loadAuthSession();
 
 const forms = {
   work: document.querySelector("#workForm"),
   leetcode: document.querySelector("#leetcodeForm"),
-  project: document.querySelector("#projectForm")
+  project: document.querySelector("#projectForm"),
+  login: document.querySelector("#loginForm")
 };
 
 document.querySelectorAll('input[type="date"]').forEach((input) => {
@@ -55,6 +59,7 @@ document.querySelectorAll('input[type="date"]').forEach((input) => {
 });
 
 initAuthorControls();
+initAuthControls();
 
 forms.work.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -135,6 +140,39 @@ function normalizeAuthors(value) {
   }));
 }
 
+function normalizeAuthUsers(value, authorList) {
+  if (Array.isArray(value)) {
+    return value.map((item) => ({
+      username: item.username || item.id,
+      email: item.email,
+      name: item.name || item.username || item.id
+    })).filter((item) => item.username && item.email);
+  }
+
+  const source = value && typeof value === "object" ? value : {};
+  return authorList.map((author) => ({
+    username: author.id,
+    name: author.name,
+    email: source[author.id] || `${author.id}@dailyreport.local`
+  }));
+}
+
+function initAuthControls() {
+  if (!forms.login) return;
+
+  const username = forms.login.elements.username;
+  username.innerHTML = authUsers.map((user) =>
+    `<option value="${escapeAttribute(user.username)}">${escapeHtml(user.name || user.username)}</option>`
+  ).join("");
+
+  forms.login.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await login(formToObject(forms.login));
+  });
+
+  document.querySelector("#logoutButton")?.addEventListener("click", logout);
+}
+
 document.querySelector("#exportData").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -171,7 +209,15 @@ document.querySelector("#clearData").addEventListener("click", async () => {
 init();
 
 async function init() {
-  setStatus(cloudEnabled ? "云同步模式" : "本地模式");
+  renderAuthState();
+
+  if (cloudEnabled && !hasValidSession()) {
+    setStatus("需要登录");
+    render();
+    return;
+  }
+
+  setStatus(cloudEnabled ? `已登录：${currentUsername() || "云同步"}` : "本地模式");
 
   try {
     state = cloudEnabled ? await loadCloudState() : loadLocalState();
@@ -184,7 +230,94 @@ async function init() {
   render();
 }
 
+async function login({ username, password }) {
+  const user = authUsers.find((item) => item.username === username);
+  if (!user) {
+    setAuthMessage("账号不存在。");
+    return;
+  }
+
+  setAuthMessage("正在登录...");
+
+  try {
+    const response = await fetch(`${trimSlash(config.supabaseUrl)}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: user.email,
+        password
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Login failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    authSession = {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: Math.floor(Date.now() / 1000) + data.expires_in,
+      username: user.username
+    };
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authSession));
+    forms.login.reset();
+    setAuthMessage("");
+    await init();
+  } catch (error) {
+    console.error(error);
+    setAuthMessage("登录失败，请检查账号密码，或确认 Supabase Auth 里已经创建该用户。");
+  }
+}
+
+function logout() {
+  authSession = null;
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  state = { workLogs: [], leetcode: [], projects: [] };
+  renderAuthState();
+  setStatus("需要登录");
+  render();
+}
+
+function loadAuthSession() {
+  try {
+    const session = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY));
+    return session && session.access_token ? session : null;
+  } catch {
+    return null;
+  }
+}
+
+function hasValidSession() {
+  return Boolean(authSession?.access_token && authSession.expires_at > Math.floor(Date.now() / 1000) + 30);
+}
+
+function currentUsername() {
+  return authUsers.find((user) => user.username === authSession?.username)?.name || authSession?.username;
+}
+
+function renderAuthState() {
+  const locked = cloudEnabled && !hasValidSession();
+  document.body.classList.toggle("auth-locked", locked);
+  document.querySelector("#authPanel").hidden = !locked;
+  document.querySelector("#logoutButton").hidden = !cloudEnabled || locked;
+}
+
+function setAuthMessage(text) {
+  const target = document.querySelector("#authMessage");
+  if (target) target.textContent = text;
+}
+
 async function addRecord(collection, item) {
+  if (cloudEnabled && !hasValidSession()) {
+    alert("请先登录后再保存。");
+    renderAuthState();
+    return;
+  }
+
   state[collection].unshift(item);
   render();
 
@@ -203,6 +336,12 @@ async function addRecord(collection, item) {
 }
 
 async function deleteRecord(collection, id) {
+  if (cloudEnabled && !hasValidSession()) {
+    alert("请先登录后再删除。");
+    renderAuthState();
+    return;
+  }
+
   const previous = [...state[collection]];
   state[collection] = state[collection].filter((item) => item.id !== id);
   render();
@@ -225,6 +364,10 @@ async function saveAll(value) {
   if (!cloudEnabled) {
     saveLocalState(value);
     return;
+  }
+
+  if (!hasValidSession()) {
+    throw new Error("Login required");
   }
 
   await clearCloudRecords();
@@ -289,11 +432,15 @@ function toCloudRow(collection, item) {
 }
 
 async function requestCloud(query = "", options = {}) {
+  if (cloudEnabled && !hasValidSession()) {
+    throw new Error("Login required");
+  }
+
   const response = await fetch(`${trimSlash(config.supabaseUrl)}/rest/v1/${tableName}${query}`, {
     method: options.method || "GET",
     headers: {
       apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
+      Authorization: `Bearer ${authSession.access_token}`,
       "Content-Type": "application/json",
       Prefer: "return=representation"
     },
